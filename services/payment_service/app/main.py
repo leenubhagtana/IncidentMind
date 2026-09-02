@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 
+from app.routes.payments import router as payment_router
+
+
 app = FastAPI(
     title="IncidentMind Payment Service",
     version="1.0.0"
@@ -14,9 +17,4 @@ def health_check():
     }
 
 
-@app.post("/payments")
-def create_payment():
-    return {
-        "payment_id": "pay_123",
-        "status": "completed"
-    }
+app.include_router(payment_router)

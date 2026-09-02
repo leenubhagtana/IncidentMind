@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 
+from app.routes.inventory import router as inventory_router
+
+
 app = FastAPI(
     title="IncidentMind Inventory Service",
     version="1.0.0"
@@ -14,9 +17,4 @@ def health_check():
     }
 
 
-@app.post("/inventory/reserve")
-def reserve_inventory():
-    return {
-        "reservation_id": "res_123",
-        "status": "reserved"
-    }
+app.include_router(inventory_router)
