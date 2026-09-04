@@ -19,3 +19,18 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  postgres:
+    image: postgres:16
+    container_name: incidentmind-postgres
+    environment:
+      POSTGRES_DB: incidentmind
+      POSTGRES_USER: incidentmind
+      POSTGRES_PASSWORD: incidentmind
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:      
