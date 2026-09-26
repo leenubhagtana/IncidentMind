@@ -1,4 +1,3 @@
-
 import time
 
 from app.redis_client import redis_client
@@ -6,8 +5,9 @@ from app.anomaly_detector import check_event_rate
 
 
 CHECK_INTERVAL = 10
-
 EVENT_WINDOW_SECONDS = 10
+
+WINDOW_KEY_PREFIX = "events:window:"
 
 
 def get_current_event_rate():
@@ -39,18 +39,22 @@ def get_event_evidence():
 
     evidence = {}
 
-    # Current event types
-    # supported by IncidentMind
+    # Find every event-type counter
+    # currently stored in Redis.
 
-    event_types = [
-        "order_created",
-        "payment_completed"
-    ]
+    keys = redis_client.keys(
+        f"{WINDOW_KEY_PREFIX}*"
+    )
 
-    for event_type in event_types:
+    for key in keys:
+
+        event_type = key.replace(
+            WINDOW_KEY_PREFIX,
+            ""
+        )
 
         count = redis_client.get(
-            f"events:window:{event_type}"
+            key
         )
 
         evidence[event_type] = (
@@ -64,15 +68,14 @@ def get_event_evidence():
 
 def reset_window_counters():
 
-    event_types = [
-        "order_created",
-        "payment_completed"
-    ]
+    keys = redis_client.keys(
+        f"{WINDOW_KEY_PREFIX}*"
+    )
 
-    for event_type in event_types:
+    if keys:
 
         redis_client.delete(
-            f"events:window:{event_type}"
+            *keys
         )
 
 

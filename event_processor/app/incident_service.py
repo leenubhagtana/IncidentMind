@@ -1,4 +1,4 @@
-# ```python
+
 import uuid
 
 from sqlalchemy.orm import Session
@@ -125,7 +125,8 @@ def create_incident(
     current_rate: float,
     baseline_rate: float,
     reason: str,
-    event_evidence: dict
+    event_evidence: dict,
+    recent_events: list
 ):
 
     db: Session = SessionLocal()
@@ -167,7 +168,7 @@ def create_incident(
         )
 
         # --------------------------------
-        # Calculate severity
+        # Severity
         # --------------------------------
 
         severity = calculate_severity(
@@ -176,7 +177,7 @@ def create_incident(
         )
 
         # --------------------------------
-        # Build evidence
+        # Rate multiplier
         # --------------------------------
 
         if baseline_rate > 0:
@@ -190,6 +191,10 @@ def create_incident(
         else:
 
             rate_multiplier = None
+
+        # --------------------------------
+        # Evidence
+        # --------------------------------
 
         evidence = {
 
@@ -206,7 +211,10 @@ def create_incident(
                 reason,
 
             "event_counts":
-                event_evidence
+                event_evidence,
+
+            "recent_events":
+                recent_events
         }
 
         # --------------------------------
@@ -215,23 +223,32 @@ def create_incident(
 
         incident = Incident(
 
-            incident_id=incident_id,
+            incident_id=
+                incident_id,
 
-            status="OPEN",
+            status=
+                "OPEN",
 
-            severity=severity,
+            severity=
+                severity,
 
-            reason=reason,
+            reason=
+                reason,
 
-            affected_service="event-processor",
+            affected_service=
+                "event-processor",
 
-            trigger_event="event_rate_anomaly",
+            trigger_event=
+                "event_rate_anomaly",
 
-            evidence=evidence,
+            evidence=
+                evidence,
 
-            current_rate=current_rate,
+            current_rate=
+                current_rate,
 
-            baseline_rate=baseline_rate
+            baseline_rate=
+                baseline_rate
         )
 
         db.add(
@@ -301,8 +318,13 @@ def create_incident(
         )
 
         print(
-            f"Evidence: "
-            f"{incident.evidence}"
+            f"Event Counts: "
+            f"{event_evidence}"
+        )
+
+        print(
+            f"Recent Events: "
+            f"{len(recent_events)}"
         )
 
         print(

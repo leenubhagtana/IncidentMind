@@ -8,6 +8,13 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models import Event
 from app.redis_client import redis_client
+from app.event_store import store_recent_event
+
+WINDOW_KEY_PREFIX = "events:window:"
+
+RECENT_EVENTS_KEY = "events:recent"
+
+MAX_RECENT_EVENTS = 100
 
 
 consumer = Consumer({
@@ -74,16 +81,11 @@ def track_event_rate():
 
     current_time = time.time()
 
-    # Unique Redis member
-    # for every event
-
     event_key = (
         f"event:"
         f"{current_time}:"
         f"{time.time_ns()}"
     )
-
-    # Store event timestamp
 
     redis_client.zadd(
         "events:timestamps",
@@ -107,8 +109,7 @@ def save_event(
     try:
 
         # --------------------------------
-        # Save event permanently
-        # in PostgreSQL
+        # PostgreSQL
         # --------------------------------
 
         event = Event(
@@ -144,7 +145,7 @@ def save_event(
         )
 
         # --------------------------------
-        # Redis: lifetime event type
+        # Redis: lifetime event counter
         # --------------------------------
 
         redis_client.incr(
@@ -153,11 +154,11 @@ def save_event(
         )
 
         # --------------------------------
-        # Redis: current window event type
+        # Redis: current window counter
         # --------------------------------
 
         redis_client.incr(
-            f"events:window:"
+            f"{WINDOW_KEY_PREFIX}"
             f"{event_data['event_type']}"
         )
 
@@ -171,6 +172,14 @@ def save_event(
                 event_data,
                 default=str
             )
+        )
+
+        # --------------------------------
+        # Redis: recent events
+        # --------------------------------
+
+        store_recent_event(
+            event_data
         )
 
         # --------------------------------
