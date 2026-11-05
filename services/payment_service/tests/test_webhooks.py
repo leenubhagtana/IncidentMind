@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import sys
+import time
 import types
 from pathlib import Path
 
@@ -28,7 +29,10 @@ def client(monkeypatch):
 
     published = []
     stub_kafka = types.ModuleType("confluent_kafka")
-    stub_kafka.Producer = lambda config: None
+    stub_kafka.Producer = lambda config: types.SimpleNamespace(
+        poll=lambda timeout: time.sleep(timeout)
+    )
+    stub_kafka.KafkaException = Exception
     monkeypatch.setitem(sys.modules, "confluent_kafka", stub_kafka)
     monkeypatch.syspath_prepend(str(SERVICE_ROOT))
     monkeypatch.setenv("MYPAY_WEBHOOK_SECRET", "test-secret")
