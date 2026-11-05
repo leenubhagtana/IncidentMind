@@ -7,7 +7,11 @@ own signal.
 """
 import statistics
 
-from app.config import FAILURE_RATE_THRESHOLD, MIN_PAYMENT_ATTEMPTS
+from app.config import (
+    FAILURE_RATE_THRESHOLD,
+    MIN_PAYMENT_ATTEMPTS,
+    RESOLVE_AFTER_HEALTHY_WINDOWS,
+)
 from app.event_store import get_recent_events
 from app.incident_service import create_incident, resolve_open_incident
 from app.redis_client import redis_client
@@ -15,6 +19,7 @@ from app.redis_client import redis_client
 
 TRIGGER_EVENT = "payment_failure_spike"
 HISTORY_KEY = "payments:failure_rate:history"
+HEALTHY_STREAK_KEY = "payments:failure_rate:healthy_streak"
 MAX_HISTORY = 60
 
 
@@ -52,6 +57,8 @@ def check_failure_rate(event_evidence: dict) -> bool:
     attempts, rate = failure_rate(event_evidence)
 
     if attempts < MIN_PAYMENT_ATTEMPTS:
+        # Too little traffic to judge either way: neither a failure
+        # nor evidence of recovery, so the healthy streak is kept.
         return False
 
     if rate < FAILURE_RATE_THRESHOLD:
@@ -59,8 +66,15 @@ def check_failure_rate(event_evidence: dict) -> bool:
         # cannot redefine itself as normal.
         redis_client.lpush(HISTORY_KEY, rate)
         redis_client.ltrim(HISTORY_KEY, 0, MAX_HISTORY - 1)
-        resolve_open_incident(TRIGGER_EVENT)
+
+        healthy_streak = redis_client.incr(HEALTHY_STREAK_KEY)
+
+        if healthy_streak >= RESOLVE_AFTER_HEALTHY_WINDOWS:
+            resolve_open_incident(TRIGGER_EVENT)
+
         return False
+
+    redis_client.set(HEALTHY_STREAK_KEY, 0)
 
     create_incident(
         current_rate=round(rate * 100, 2),

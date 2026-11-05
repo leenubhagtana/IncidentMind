@@ -18,6 +18,10 @@ MAX_PROCESSING_ATTEMPTS = int(os.getenv("MAX_PROCESSING_ATTEMPTS", "3"))
 # of traffic moves the overall failure rate by only about 16 points.
 FAILURE_RATE_THRESHOLD = float(os.getenv("FAILURE_RATE_THRESHOLD", "0.10"))
 MIN_PAYMENT_ATTEMPTS = int(os.getenv("MIN_PAYMENT_ATTEMPTS", "10"))
+# Consecutive healthy windows needed to resolve a failure incident. One window
+# is not enough: during a single-bank outage a 10-second window can contain no
+# payments to that bank by chance and look perfectly healthy.
+RESOLVE_AFTER_HEALTHY_WINDOWS = int(os.getenv("RESOLVE_AFTER_HEALTHY_WINDOWS", "3"))
 
 # Evidence windows used by the investigator, in seconds.
 INCIDENT_LOOKBACK_SECONDS = int(os.getenv("INCIDENT_LOOKBACK_SECONDS", "300"))
