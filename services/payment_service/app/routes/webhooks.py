@@ -47,7 +47,7 @@ def to_service_event(webhook: dict, event_id: str) -> ServiceEvent | None:
     )
 
     return ServiceEvent(
-        # Razorpay's own ID makes redelivered webhooks deduplicate downstream.
+        # MyPay's own ID makes redelivered webhooks deduplicate downstream.
         event_id=event_id,
         event_type=event_type,
         service="payment-service",
@@ -56,7 +56,7 @@ def to_service_event(webhook: dict, event_id: str) -> ServiceEvent | None:
             "payment_id": payment.get("id"),
             "order_id": payment.get("order_id"),
             "merchant_id": webhook.get("account_id"),
-            # Razorpay amounts are in paise.
+            # MyPay amounts are in paise.
             "amount": (payment.get("amount") or 0) / 100,
             "currency": payment.get("currency"),
             "method": payment.get("method"),
@@ -69,13 +69,13 @@ def to_service_event(webhook: dict, event_id: str) -> ServiceEvent | None:
     )
 
 
-@router.post("/razorpay", status_code=202)
-async def receive_razorpay_webhook(
+@router.post("/mypay", status_code=202)
+async def receive_mypay_webhook(
     request: Request,
-    x_razorpay_signature: str = Header(default=""),
-    x_razorpay_event_id: str = Header(default=""),
+    x_mypay_signature: str = Header(default=""),
+    x_mypay_event_id: str = Header(default=""),
 ):
-    secret = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
+    secret = os.getenv("MYPAY_WEBHOOK_SECRET", "")
 
     if not secret:
         raise HTTPException(503, "Webhook secret is not configured")
@@ -83,16 +83,16 @@ async def receive_razorpay_webhook(
     # The signature covers the exact bytes received, so verify before parsing.
     raw_body = await request.body()
 
-    if not signature_is_valid(raw_body, x_razorpay_signature, secret):
+    if not signature_is_valid(raw_body, x_mypay_signature, secret):
         raise HTTPException(401, "Invalid signature")
 
-    if not x_razorpay_event_id:
-        raise HTTPException(400, "Missing x-razorpay-event-id header")
+    if not x_mypay_event_id:
+        raise HTTPException(400, "Missing x-mypay-event-id header")
 
     try:
         event = to_service_event(
             json.loads(raw_body),
-            x_razorpay_event_id
+            x_mypay_event_id
         )
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         raise HTTPException(400, "Unrecognised webhook payload") from exc

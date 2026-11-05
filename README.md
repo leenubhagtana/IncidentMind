@@ -5,7 +5,7 @@ Event-driven incident detection for payments, with automated investigation whose
 When payment failures spike, IncidentMind opens an incident and investigates it: which bank, method or merchant is failing, whether a deployment lines up, and what to do next. Every number in the answer is recomputed from the raw events. Actions are proposals that a person approves.
 
 ```
-Razorpay webhooks ─ signature check ─ payment-service ─┐
+MyPay webhooks ─ signature check ─ payment-service ─┐
 order-service ─────────────────────────────────────────┤ Kafka
                                                        ▼
                        event-processor: idempotent consumer, dead-letter topic
@@ -67,7 +67,7 @@ PYTHONPATH=event_processor:. python -m evals.run
 
 - **Separate failure-rate detector.** A bank outage can leave event volume flat, so the volume detector alone would miss it.
 - **10% failure threshold.** A complete outage at a bank with 20% of traffic moves the overall rate by only about 16 points.
-- **Idempotent consumer.** Kafka and Razorpay can both deliver twice. The Razorpay event ID becomes the event ID, and counters update only after a new row commits.
+- **Idempotent consumer.** Kafka and MyPay can both deliver twice. The MyPay event ID becomes the event ID, and counters update only after a new row commits.
 - **Dead-letter topic.** Bad data skips retries, transient errors retry first, and neither blocks the partition.
 - **Human approval.** The system proposes actions and never runs them.
 - **Healthy windows only in baselines.** An incident cannot raise its own baseline.

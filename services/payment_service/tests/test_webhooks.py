@@ -31,7 +31,7 @@ def client(monkeypatch):
     stub_kafka.Producer = lambda config: None
     monkeypatch.setitem(sys.modules, "confluent_kafka", stub_kafka)
     monkeypatch.syspath_prepend(str(SERVICE_ROOT))
-    monkeypatch.setenv("RAZORPAY_WEBHOOK_SECRET", "test-secret")
+    monkeypatch.setenv("MYPAY_WEBHOOK_SECRET", "test-secret")
 
     import app.routes.webhooks as webhooks
 
@@ -83,11 +83,11 @@ def post(client, payload, secret="test-secret", event_id="evt_abc"):
     signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
     return client.post(
-        "/webhooks/razorpay",
+        "/webhooks/mypay",
         content=body,
         headers={
-            "X-Razorpay-Signature": signature,
-            "x-razorpay-event-id": event_id,
+            "X-MyPay-Signature": signature,
+            "x-mypay-event-id": event_id,
         },
     )
 
@@ -116,11 +116,11 @@ def test_tampered_body_is_rejected(client):
     signature = hmac.new(b"test-secret", body, hashlib.sha256).hexdigest()
 
     response = client.post(
-        "/webhooks/razorpay",
+        "/webhooks/mypay",
         content=body + b" ",
         headers={
-            "X-Razorpay-Signature": signature,
-            "x-razorpay-event-id": "evt_abc",
+            "X-MyPay-Signature": signature,
+            "x-mypay-event-id": "evt_abc",
         },
     )
 

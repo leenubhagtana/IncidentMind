@@ -71,7 +71,7 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001
     environment:
       <<: *app-env
-      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-local-demo-secret}
+      MYPAY_WEBHOOK_SECRET: ${MYPAY_WEBHOOK_SECRET:-local-demo-secret}
     ports:
       - "8001:8001"
 

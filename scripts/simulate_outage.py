@@ -1,5 +1,5 @@
 """
-Sends signed, Razorpay-format test webhooks to the running stack: healthy
+Sends signed, MyPay-format test webhooks to the running stack: healthy
 traffic, then a simulated HDFC outage. All data is generated.
 
   python scripts/simulate_outage.py
@@ -14,8 +14,8 @@ import urllib.request
 import uuid
 
 
-URL = os.getenv("WEBHOOK_URL", "http://localhost:8001/webhooks/razorpay")
-SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "local-demo-secret")
+URL = os.getenv("WEBHOOK_URL", "http://localhost:8001/webhooks/mypay")
+SECRET = os.getenv("MYPAY_WEBHOOK_SECRET", "local-demo-secret")
 BANKS = ["HDFC", "ICIC", "SBIN", "UTIB", "KKBK"]
 RATE_PER_SECOND = 5
 
@@ -49,8 +49,8 @@ def send(failed: bool, bank: str) -> None:
 
     request = urllib.request.Request(URL, data=body, headers={
         "Content-Type": "application/json",
-        "X-Razorpay-Signature": signature,
-        "x-razorpay-event-id": f"evt_{uuid.uuid4().hex}",
+        "X-MyPay-Signature": signature,
+        "x-mypay-event-id": f"evt_{uuid.uuid4().hex}",
     })
     urllib.request.urlopen(request, timeout=5).read()
 

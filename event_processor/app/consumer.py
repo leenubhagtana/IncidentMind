@@ -63,7 +63,7 @@ def save_event(event_data: dict) -> bool:
     """
     Store one event exactly once. Returns False for a duplicate.
 
-    Kafka delivers at least once and Razorpay retries webhooks, so the same
+    Kafka delivers at least once and MyPay retries webhooks, so the same
     event_id can arrive twice. Counters update only after a new row commits,
     which stops duplicates from inflating the anomaly detector's numbers.
     """
