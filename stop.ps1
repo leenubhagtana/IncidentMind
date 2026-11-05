@@ -1,4 +1,4 @@
-$root = "D:\ML"
+$root = $PSScriptRoot
 
 Write-Host ""
 Write-Host "Stopping IncidentMind..." -ForegroundColor Yellow

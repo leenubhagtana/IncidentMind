@@ -1,10 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = (
-    "postgresql://incidentmind:incidentmind"
-    "@localhost:5433/incidentmind"
-)
+from app.config import DATABASE_URL
+
 
 engine = create_engine(DATABASE_URL)
 

@@ -1,5 +1,5 @@
 
-$root = "D:\ML"
+$root = $PSScriptRoot
 $python = Join-Path $root ".venv\Scripts\python.exe"
 
 Write-Host ""

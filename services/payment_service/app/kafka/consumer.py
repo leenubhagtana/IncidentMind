@@ -1,4 +1,5 @@
 import json
+import os
 
 from confluent_kafka import Consumer
 
@@ -7,7 +8,10 @@ from shared.events import ServiceEvent
 
 
 consumer = Consumer({
-    "bootstrap.servers": "localhost:9092",
+    "bootstrap.servers": os.getenv(
+        "KAFKA_BOOTSTRAP_SERVERS",
+        "localhost:9092"
+    ),
     "group.id": "payment-service",
     "auto.offset.reset": "latest",
 })

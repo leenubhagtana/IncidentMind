@@ -2,6 +2,7 @@ import time
 
 from app.redis_client import redis_client
 from app.anomaly_detector import check_event_rate
+from app.failure_detector import check_failure_rate
 
 
 CHECK_INTERVAL = 10
@@ -116,6 +117,10 @@ def start_monitor():
 
         check_event_rate(
             event_rate,
+            event_evidence
+        )
+
+        check_failure_rate(
             event_evidence
         )
 

@@ -98,6 +98,8 @@ def check_event_rate(
             "No events detected in current window."
         )
 
+        resolve_open_incident()
+
         return False
 
     # -----------------------------------------
@@ -185,9 +187,13 @@ def check_event_rate(
 
     # -----------------------------------------
     # Save current measurement
+    # Spikes are excluded so that an incident
+    # cannot raise its own baseline.
     # -----------------------------------------
 
-    save_history(current_rate)
+    if not is_anomaly:
+
+        save_history(current_rate)
 
     # -----------------------------------------
     # Print analysis

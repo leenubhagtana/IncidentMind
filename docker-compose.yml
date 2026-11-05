@@ -1,3 +1,12 @@
+x-app: &app
+  build: .
+  environment: &app-env
+    PYTHONPATH: /srv
+    KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  depends_on:
+    kafka:
+      condition: service_healthy
+
 services:
   kafka:
     image: apache/kafka:4.0.1
@@ -9,9 +18,10 @@ services:
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
 
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -19,6 +29,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
 
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+      interval: 5s
+      timeout: 10s
+      retries: 20
 
   postgres:
     image: postgres:16
@@ -31,12 +46,70 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U incidentmind
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
   redis:
     image: redis:7
     container_name: incidentmind-redis
     ports:
       - "6379:6379"
+
+  order-service:
+    <<: *app
+    working_dir: /srv/services/order_service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+
+  payment-service:
+    <<: *app
+    working_dir: /srv/services/payment_service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+    environment:
+      <<: *app-env
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-local-demo-secret}
+    ports:
+      - "8001:8001"
+
+  payment-consumer:
+    <<: *app
+    working_dir: /srv/services/payment_service
+    command: python -m app.kafka.run_consumer
+
+  inventory-service:
+    <<: *app
+    working_dir: /srv/services/inventory_service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+    ports:
+      - "8002:8002"
+
+  inventory-consumer:
+    <<: *app
+    working_dir: /srv/services/inventory_service
+    command: python -m app.kafka.run_consumer
+
+  event-processor:
+    <<: *app
+    working_dir: /srv/event_processor
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+    environment:
+      <<: *app-env
+      PYTHONPATH: /srv/event_processor:/srv
+      DATABASE_URL: postgresql+psycopg2://incidentmind:incidentmind@postgres:5432/incidentmind
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8003:8003"
 
 volumes:
   postgres_data:

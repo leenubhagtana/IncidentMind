@@ -7,6 +7,8 @@ from app.database import SessionLocal
 from app.models import Incident
 
 
+DEFAULT_TRIGGER = "event_rate_anomaly"
+
 def calculate_severity(
     current_rate: float,
     baseline_rate: float
@@ -37,13 +39,17 @@ def calculate_severity(
 
 
 def get_open_incident(
-    db: Session
+    db: Session,
+    trigger_event: str = DEFAULT_TRIGGER
 ):
 
+    # One open incident per signal, so a traffic spike
+    # cannot hide a payment failure that starts during it.
     return (
         db.query(Incident)
         .filter(
-            Incident.status == "OPEN"
+            Incident.status == "OPEN",
+            Incident.trigger_event == trigger_event
         )
         .order_by(
             Incident.detected_at.desc()
@@ -52,14 +58,16 @@ def get_open_incident(
     )
 
 
-def resolve_open_incident():
+def resolve_open_incident(
+    trigger_event: str = DEFAULT_TRIGGER
+):
 
     db: Session = SessionLocal()
 
     try:
 
         open_incident = (
-            get_open_incident(db)
+            get_open_incident(db, trigger_event)
         )
 
         if not open_incident:
@@ -126,7 +134,10 @@ def create_incident(
     baseline_rate: float,
     reason: str,
     event_evidence: dict,
-    recent_events: list
+    recent_events: list,
+    affected_service: str = "event-processor",
+    trigger_event: str = DEFAULT_TRIGGER,
+    severity: str | None = None
 ):
 
     db: Session = SessionLocal()
@@ -138,7 +149,7 @@ def create_incident(
         # --------------------------------
 
         open_incident = (
-            get_open_incident(db)
+            get_open_incident(db, trigger_event)
         )
 
         if open_incident:
@@ -171,7 +182,7 @@ def create_incident(
         # Severity
         # --------------------------------
 
-        severity = calculate_severity(
+        severity = severity or calculate_severity(
             current_rate,
             baseline_rate
         )
@@ -236,10 +247,10 @@ def create_incident(
                 reason,
 
             affected_service=
-                "event-processor",
+                affected_service,
 
             trigger_event=
-                "event_rate_anomaly",
+                trigger_event,
 
             evidence=
                 evidence,

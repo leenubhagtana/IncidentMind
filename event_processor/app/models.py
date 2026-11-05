@@ -1,6 +1,14 @@
 from datetime import datetime
 
-from sqlalchemy import Column, String, DateTime, JSON, Float
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+)
 
 from app.database import Base
 
@@ -86,6 +94,89 @@ class Incident(Base):
     )
 
     detected_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+class Investigation(Base):
+    """One investigation run. The trace keeps every tool call for audit."""
+
+    __tablename__ = "investigations"
+
+    investigation_id = Column(
+        String,
+        primary_key=True
+    )
+
+    incident_id = Column(
+        String,
+        ForeignKey("incidents.incident_id"),
+        nullable=False,
+        index=True
+    )
+
+    engine = Column(
+        String,
+        nullable=False
+    )
+
+    status = Column(
+        String,
+        nullable=False
+    )
+
+    result = Column(
+        JSON,
+        nullable=False
+    )
+
+    trace = Column(
+        JSON,
+        nullable=False,
+        default=list
+    )
+
+    created_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow
+    )
+
+
+class ActionDecision(Base):
+    """A human decision on a proposed action. Nothing here executes it."""
+
+    __tablename__ = "action_decisions"
+
+    decision_id = Column(
+        String,
+        primary_key=True
+    )
+
+    investigation_id = Column(
+        String,
+        ForeignKey("investigations.investigation_id"),
+        nullable=False,
+        index=True
+    )
+
+    action_index = Column(
+        Integer,
+        nullable=False
+    )
+
+    decision = Column(
+        String,
+        nullable=False
+    )
+
+    decided_by = Column(
+        String,
+        nullable=False
+    )
+
+    decided_at = Column(
         DateTime,
         nullable=False,
         default=datetime.utcnow

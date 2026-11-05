@@ -1,4 +1,5 @@
 import json
+import os
 
 from confluent_kafka import Producer
 
@@ -6,7 +7,10 @@ from shared.events import ServiceEvent
 
 
 producer = Producer({
-    "bootstrap.servers": "localhost:9092"
+    "bootstrap.servers": os.getenv(
+        "KAFKA_BOOTSTRAP_SERVERS",
+        "localhost:9092"
+    )
 })
 
 

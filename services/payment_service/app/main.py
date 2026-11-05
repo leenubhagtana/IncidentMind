@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.routes.payments import router as payment_router
+from app.routes.webhooks import router as webhook_router
 
 
 app = FastAPI(
