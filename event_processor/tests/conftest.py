@@ -21,3 +21,5 @@ def clean_state():
     Base.metadata.create_all(bind=engine)
     app.redis_client.redis_client.flushall()
     yield
+
+os.environ["LLM_API_KEY"] = ""
