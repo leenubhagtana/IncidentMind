@@ -26,3 +26,10 @@ RESOLVE_AFTER_HEALTHY_WINDOWS = int(os.getenv("RESOLVE_AFTER_HEALTHY_WINDOWS", "
 # Evidence windows used by the investigator, in seconds.
 INCIDENT_LOOKBACK_SECONDS = int(os.getenv("INCIDENT_LOOKBACK_SECONDS", "300"))
 BASELINE_LOOKBACK_SECONDS = int(os.getenv("BASELINE_LOOKBACK_SECONDS", "3600"))
+
+# Any OpenAI-compatible endpoint works. Leave LLM_API_KEY empty to use
+# the rule engine instead.
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "") or None
+LLM_MODEL = os.getenv("LLM_MODEL", "")
+LLM_MAX_STEPS = int(os.getenv("LLM_MAX_STEPS", "8"))

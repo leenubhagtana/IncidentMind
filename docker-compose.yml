@@ -4,8 +4,8 @@ x-app: &app
     PYTHONPATH: /srv
     KAFKA_BOOTSTRAP_SERVERS: kafka:29092
   depends_on:
-    kafka:
-      condition: service_healthy
+    kafka-init:
+      condition: service_completed_successfully
 
 services:
   kafka:
@@ -34,6 +34,21 @@ services:
       interval: 5s
       timeout: 10s
       retries: 20
+
+  kafka-init:
+    image: apache/kafka:4.0.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        for topic in order-events payment-events events-dead-letter; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 \
+            --create --if-not-exists --topic "$$topic" \
+            --partitions 1 --replication-factor 1 || exit 1
+        done
 
   postgres:
     image: postgres:16
@@ -101,9 +116,12 @@ services:
       PYTHONPATH: /srv/event_processor:/srv
       DATABASE_URL: postgresql+psycopg2://incidentmind:incidentmind@postgres:5432/incidentmind
       REDIS_URL: redis://redis:6379/0
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:

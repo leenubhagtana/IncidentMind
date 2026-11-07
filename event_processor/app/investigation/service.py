@@ -4,6 +4,7 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from app import config
+from app.investigation.agent import investigate
 from app.investigation.evidence import Evidence
 from app.investigation.rules import triage
 from app.investigation.verifier import verify
@@ -77,15 +78,71 @@ def run_rules(evidence: Evidence) -> dict:
     }
 
 
+def llm_is_configured() -> bool:
+    return bool(config.LLM_API_KEY and config.LLM_MODEL)
+
+
+def llm_client():
+    from openai import OpenAI
+
+    return OpenAI(
+        api_key=config.LLM_API_KEY,
+        base_url=config.LLM_BASE_URL,
+        # Fail fast: a slow model must not leave the on-call engineer waiting.
+        timeout=60,
+        max_retries=2,
+    )
+
+
+def run_llm(incident: Incident, evidence: Evidence) -> dict:
+    incident_summary = {
+        "incident_id": incident.incident_id,
+        "severity": incident.severity,
+        "reason": incident.reason,
+        "affected_service": incident.affected_service,
+        "detected_at": incident.detected_at,
+    }
+
+    return investigate(
+        llm_client(),
+        config.LLM_MODEL,
+        incident_summary,
+        evidence,
+        config.LLM_MAX_STEPS,
+    )
+
+
+def choose_engine(incident: Incident, evidence: Evidence) -> tuple[str, dict]:
+    """
+    Use the LLM when it is configured and produces an answer.
+    Otherwise fall back to the rule engine, so an investigation
+    always comes back even if the LLM is down or out of quota.
+    """
+
+    if not llm_is_configured():
+        return "rules", run_rules(evidence)
+
+    try:
+        outcome = run_llm(incident, evidence)
+    except Exception as exc:
+        print(f"LLM investigation failed, using rules: {exc}")
+        return "rules (llm unavailable)", run_rules(evidence)
+
+    if outcome["status"] == "FAILED":
+        return "rules (llm gave no answer)", run_rules(evidence)
+
+    return f"llm:{config.LLM_MODEL}", outcome
+
+
 def run_investigation(db: Session, incident: Incident) -> Investigation:
     evidence = load_evidence(db, incident)
 
-    outcome = run_rules(evidence)
+    engine, outcome = choose_engine(incident, evidence)
 
     investigation = Investigation(
         investigation_id=f"INV-{uuid.uuid4().hex[:8].upper()}",
         incident_id=incident.incident_id,
-        engine="rules",
+        engine=engine,
         status=outcome["status"],
         result={
             "findings": outcome["findings"],
